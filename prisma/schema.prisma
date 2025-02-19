@@ -1,0 +1,116 @@
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")          // Your main database URL
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")   // Your shadow database URL
+}
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                Int      @id @default(autoincrement())
+  name              String 
+  password          String
+  email             String? 
+  role              Role  
+  stores            Store?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+model Store {
+  id                Int          @id @default(autoincrement())
+  position          String?
+  description       String?
+  role              String?
+  storeName         String
+  storeEmail        String?
+  phoneNumber       String?
+  website           String?
+  facebookPage      String?
+  linkedinPage      String?
+  instagramPage     String?
+  tiktok            String?
+  city              String?
+  country           String
+  continent         String
+  isVerified        Boolean @default(false)
+  userId            Int      @unique
+  user              User     @relation(fields: [userId], references: [id])
+  categories        StoreCategory[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Category {
+  id                Int      @id @default(autoincrement())
+  name              String   @unique
+  stores            StoreCategory[]
+  products          Product[]
+}
+model StoreCategory {
+  id                Int      @id @default(autoincrement()) // Add a non-composite primary key
+  storeId           Int
+  categoryId        Int
+  store             Store     @relation(fields: [storeId], references: [id])
+  category          Category  @relation(fields: [categoryId], references: [id])
+
+  @@unique([storeId, categoryId])  // Ensure uniqueness of the combination
+}
+
+model Product {
+  id                Int      @id @default(autoincrement())
+  name              String
+  categoryId       Int
+  category         Category @relation(fields: [categoryId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Ad {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  imageUrl    String?
+  link        String?
+  position    String  // E.g., "homepage", "sidebar"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Video {
+  id        Int      @id @default(autoincrement())
+  title     String?
+  url       String?
+  duration  Int?      // Duration in seconds
+  logoUrl   String?  // Optional logo for branding
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PDF {
+  id        Int      @id @default(autoincrement())
+  title     String?
+  fileUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Newsletter {
+  id        Int      @id @default(autoincrement())
+  imageUrl    String?
+  subject   String?
+  link      String?
+  content   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Enum for user roles
+enum Role {
+  ADMIN
+  STORE
+  NON_STORE
+  WHOLESALER
+}
