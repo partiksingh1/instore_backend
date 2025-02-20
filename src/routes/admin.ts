@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { batchproducts, createAd, createNewsletter, deleteAd, deleteNewsletter, fetchAds, fetchAdsByPosition, getNewsletters } from '../controllers/adminController.js';
+import { batchproducts, createAd, createLatest, createNewsletter, deleteAd, deleteLatest, deleteNewsletter, fetchAds, fetchAdsByPosition, getAllNewsletters, getLatest, sendNewsletterEmail } from '../controllers/adminController.js';
 import { addProduct, deleteProduct, editProduct, getProductsInCategory } from '../controllers/categoryController.js';
+import { createVideo, deleteVideo, getVideos, processVideo } from '../controllers/videoController.js';
 
 
 const adminRouter = Router();
@@ -10,13 +11,22 @@ adminRouter.post("/admin/ads", createAd); // Route for creating an ad
 adminRouter.delete("/admin/ads/:id", deleteAd); // Route for deleting an ad
 adminRouter.get("/admin/ads", fetchAds); // Route for fetching ads
 adminRouter.get("/admin/ad", fetchAdsByPosition); // Route for fetching ads
-adminRouter.post('/admin/newsletters', createNewsletter);
-adminRouter.get('/admin/newsletters', getNewsletters);
-adminRouter.delete('/admin/newsletters/:id', deleteNewsletter);
+adminRouter.post('/admin/latest', createLatest);
+adminRouter.get('/admin/latest', getLatest);
+adminRouter.delete('/admin/latest/:id', deleteLatest);
 adminRouter.post('/admin/products', addProduct);
 adminRouter.put('/admin/products/:id', editProduct);
 adminRouter.delete('/admin/products/:id', deleteProduct);
 adminRouter.get('/admin/category/:categoryName/products', getProductsInCategory);
 adminRouter.post('/admin/batch/products', batchproducts);
+adminRouter.post('/admin/newsletter/create', createNewsletter);
+adminRouter.get('/admin/newsletter', getAllNewsletters);
+adminRouter.delete('/admin/newsletter/:id', deleteNewsletter);
+adminRouter.post('/admin/newsletter/:id/send', sendNewsletterEmail);
+adminRouter.post('/admin/videos', createVideo);
+adminRouter.get('/admin/videos', getVideos);
+adminRouter.delete('/admin/videos/:id', deleteVideo);
+adminRouter.post('/process-video', processVideo);
+
 
 export default adminRouter;
