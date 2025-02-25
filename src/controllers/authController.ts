@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -15,6 +15,7 @@ const registerStoreSchema = z.object({
   name: z.string().min(3),
   email: z.string(),
   password: z.string().min(6),
+  role:z.string(),
   storeDetails: z.object({
     storeName: z.string().min(1),
     position: z.string().min(1),
@@ -27,9 +28,9 @@ const registerStoreSchema = z.object({
     tiktok: z.string().optional(),
     city: z.string().min(1),
     country: z.string().min(1),
-    continent: z.string().min(1),
+    continent: z.string().min(1)
   }),
-  categories: z.array(z.string()).min(1), // New field for categories
+  categories: z.array(z.string()).optional(), // New field for categories
 });
 
 export const registerStore = async (req: Request, res: Response) => {
@@ -40,7 +41,7 @@ export const registerStore = async (req: Request, res: Response) => {
       return;
     }
 
-    const { name, email, password, storeDetails, categories } = parsedData.data;
+    const { name, email, password, storeDetails, categories,role } = parsedData.data;
 
     // Check if user already exists
     const existingUser  = await prisma.user.findFirst({ where: { email } });
@@ -52,13 +53,18 @@ export const registerStore = async (req: Request, res: Response) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Make sure role is a valid enum value
+    let userRole: Role = Role.NON_STORE; // Default to NON_STORE if role is not provided
+    if (role && Object.values(Role).includes(role as Role)) {
+      userRole = role as Role; // Assign role from the request if it's a valid enum
+    }
     // Create user
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        role: "STORE", // Assuming store registration role
+        role: userRole
       },
     });
 
@@ -81,6 +87,7 @@ export const registerStore = async (req: Request, res: Response) => {
     });
 
     // Create categories and associate them with the store
+    if (categories && categories.length > 0) {
     const categoryPromises = categories.map(async (categoryName) => {
       // Check if the category already exists
       let category = await prisma.category.findUnique({ where: { name: categoryName } });
@@ -109,6 +116,7 @@ export const registerStore = async (req: Request, res: Response) => {
 
     // Wait for all StoreCategory entries to be created
     await Promise.all(storeCategoryPromises);
+  }
 
     res.status(201).json({ message: "Store registered successfully", user, store });
     return;

@@ -38,7 +38,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // const upload = multer({ storage: storage });
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({
+  dest: 'uploads/', 
+  limits: { fileSize: 300 * 1024 * 1024 } // Set a limit of 300MB
+});
 
 /**
  * Controller to handle video creation and upload.
@@ -161,25 +164,55 @@ export const processVideo = [
 
       const ffmpegInstance = ffmpegLib(videoUrl);
 
-      await new Promise<void>((resolve, reject) => {
-        ffmpegInstance
-          .input(logoFile.path)
-          .complexFilter([
-            {
-              filter: 'overlay',
-              options: {
-                x: 10,
-                y: 10,
-                enable: 'gte(t,0)*lt(mod(t,120),60)' // Corrected enable expression
-              }
-            }
-          ])
-          .outputOptions('-c:v libx264')
-          .outputOptions('-c:a copy')
-          .on('end', () => resolve())
-          .on('error', (err: any) => reject(err))
-          .save(outputPath);
-      });
+// Wraps the entire ffmpeg process inside a Promise for asynchronous execution
+await new Promise<void>((resolve, reject) => {
+  // Initiates an ffmpeg process on the logo file (input source)
+  ffmpegInstance
+    // Set the input file for ffmpeg (logo file)
+    .input(logoFile.path)
+
+    // Apply a single filter for scaling the logo and overlaying it
+    .complexFilter([
+      // First filter: Scaling the logo to half its size
+      {
+        filter: 'scale', // Apply scaling filter
+        inputs: ['1:v'], // Input source is the logo image (second input)
+        options: {
+          w: 'iw/7', // Set the width of the logo to half of the original width
+          h: 'ih/7'  // Set the height of the logo to half of the original height
+        },
+        outputs: ['scaled'] // Output is the scaled logo stream
+      },
+
+      // Second filter: Overlay the scaled logo onto the main video at the top-right corner
+      {
+        filter: 'overlay', // Apply overlay filter
+        inputs: ['0:v', 'scaled'], // First input is the main video, second is the scaled logo
+        options: {
+          // Position the logo at the top-right corner
+          x: 'main_w-overlay_w-10', // x-position is right aligned (10px margin from the right edge)
+          y: '10' // y-position is 10px from the top edge
+        }
+      }
+    ])
+
+    // Set the video codec to libx264 (for H.264 compression)
+    .outputOptions('-c:v libx264')
+
+    // Copy the original audio without re-encoding it
+    .outputOptions('-c:a copy')
+
+    // Resolve the promise when the process completes successfully
+    .on('end', () => resolve())
+
+    // Reject the promise if an error occurs during the process
+    .on('error', (err: any) => reject(err))
+
+    // Save the processed video to the specified output path
+    .save(outputPath);
+});
+
+
 
       // Send the processed video
       res.download(outputPath, outputFileName, (err) => {

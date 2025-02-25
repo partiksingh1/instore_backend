@@ -27,6 +27,7 @@ export const fetchStoresByCategoryAndCountry = async (req: Request, res: Respons
     const stores = await prisma.store.findMany({
       where: {
         country: country,
+        isVerified:true,
         categories: {
           some: {
             category: {
@@ -99,12 +100,16 @@ export const fetchWandDByCategoryAndCountry = async (req: Request, res: Response
     const stores = await prisma.store.findMany({
       where: {
         country: country,
+        isVerified: true,
         categories: {
           some: {
             category: {
               name: category,
             },
           },
+        },
+        role: {
+          in: ['ALL', 'WHOLESALER', 'DISTRIBUTOR'],  // Filter stores by specific roles
         },
       },
       include: {
@@ -114,9 +119,10 @@ export const fetchWandDByCategoryAndCountry = async (req: Request, res: Response
           },
         },
       },
-      skip: (page - 1) * pageSize,  // Calculate skip for pagination
-      take: pageSize,  // Take only the number of items defined by pageSize
+      skip: (page - 1) * pageSize, // Pagination calculation
+      take: pageSize, // Limit the result to pageSize
     });
+    
 
     // Fetch the total number of stores to calculate total pages
     const totalStores = await prisma.store.count({
@@ -154,5 +160,59 @@ export const fetchWandDByCategoryAndCountry = async (req: Request, res: Response
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+export const verifyStore = async (req: Request, res: Response) => {
+  const { storeId } = req.params; // Assume the storeId is passed as a URL parameter
+  
+  try {
+    // Find the store by its id
+    const store = await prisma.store.update({
+      where: {
+        id: Number(storeId), // Convert storeId to number
+      },
+      data: {
+        isVerified: true, // Set the 'isVerified' field to true
+      },
+    });
+
+    // Respond with the updated store details
+     res.json({
+      success: true,
+      message: 'Store successfully verified.',
+      data: store,
+    });
+    return
+  } catch (error:any) {
+    // Handle error if the store was not found or other errors occur
+    console.error(error);
+     res.status(500).json({
+      success: false,
+      message: 'Failed to verify store.',
+      error: error.message,
+    });
+    return
+  }
+};
+export const getUnverifyStore = async (req: Request, res: Response) => {
+  try {
+    const stores = await prisma.store.findMany({
+      where: {
+        isVerified: false,
+      },
+      include: {
+        categories: {
+          include: {
+            category: true, // Include the category details
+          },
+        },
+      },
+    });
+
+     res.json({ stores });
+     return
+  } catch (error) {
+    console.error('Error fetching unverified stores:', error);
+    res.status(500).json({ message: 'Error fetching unverified stores' });
   }
 };

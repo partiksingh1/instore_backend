@@ -68,6 +68,19 @@ CREATE TABLE "Product" (
 );
 
 -- CreateTable
+CREATE TABLE "StoreWindow" (
+    "id" SERIAL NOT NULL,
+    "title" TEXT,
+    "imageUrl" TEXT,
+    "description" TEXT,
+    "url" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "StoreWindow_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Ad" (
     "id" SERIAL NOT NULL,
     "title" TEXT NOT NULL,
@@ -106,14 +119,29 @@ CREATE TABLE "PDF" (
 );
 
 -- CreateTable
-CREATE TABLE "Newsletter" (
+CREATE TABLE "Latest" (
     "id" SERIAL NOT NULL,
     "imageUrl" TEXT,
     "subject" TEXT,
-    "videoLink" TEXT,
+    "link" TEXT,
     "content" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Latest_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Newsletter" (
+    "id" SERIAL NOT NULL,
+    "subject" TEXT NOT NULL,
+    "bodyText" TEXT,
+    "images" TEXT,
+    "videos" TEXT,
+    "links" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "recipients" TEXT[],
 
     CONSTRAINT "Newsletter_pkey" PRIMARY KEY ("id")
 );

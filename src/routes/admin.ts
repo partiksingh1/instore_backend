@@ -1,7 +1,8 @@
 import { Router } from 'express';
-import { batchproducts, createAd, createLatest, createNewsletter, deleteAd, deleteLatest, deleteNewsletter, fetchAds, fetchAdsByPosition, getAllNewsletters, getLatest, sendNewsletterEmail } from '../controllers/adminController.js';
+import { batchproducts, createAd, createLatest, createNewsletter, createWindow, deleteAd, deleteLatest, deleteNewsletter, deleteWindow, fetchAds, fetchAdsByPosition, getAllNewsletters, getLatest, getWindows, sendNewsletterEmail } from '../controllers/adminController.js';
 import { addProduct, deleteProduct, editProduct, getProductsInCategory } from '../controllers/categoryController.js';
 import { createVideo, deleteVideo, getVideos, processVideo } from '../controllers/videoController.js';
+import { getUnverifyStore, verifyStore } from '../controllers/storeController.js';
 
 
 const adminRouter = Router();
@@ -27,6 +28,11 @@ adminRouter.post('/admin/videos', createVideo);
 adminRouter.get('/admin/videos', getVideos);
 adminRouter.delete('/admin/videos/:id', deleteVideo);
 adminRouter.post('/process-video', processVideo);
+adminRouter.post('/admin/create-window', createWindow);
+adminRouter.get('/windows', getWindows);
+adminRouter.delete('/admin/window/:id', deleteWindow);
+adminRouter.put('/admin/store/:storeId/verify', verifyStore);
+adminRouter.get('/admin/stores/unverified', getUnverifyStore);
 
 
 export default adminRouter;

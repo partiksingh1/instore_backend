@@ -68,6 +68,16 @@ model Product {
   updatedAt        DateTime @updatedAt
 }
 
+model StoreWindow {
+  id                Int      @id @default(autoincrement())
+  title             String?
+  imageUrl          String?
+  description       String?
+  url               String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
 model Ad {
   id          Int      @id @default(autoincrement())
   title       String
@@ -108,14 +118,11 @@ model Latest {
 }
 model Newsletter {
   id          Int      @id @default(autoincrement())
-  subject     String
-  bodyText    String?  
-  images      String[] 
-  videos      String[]
-  links       String[] 
+  contents    Json     // Store an array of { title, description } objects
+  images      String[] // Array of image URLs
+  recipients  String[] // Array of recipient emails
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  recipients  String[]
 }
 
 // Enum for user roles
