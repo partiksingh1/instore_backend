@@ -294,7 +294,7 @@ export const batchproducts = async (req: Request, res: Response)=> {
 
   try {
     // Assuming all products should go into the same category
-    const categoryId = 1; // For example, categoryId 1 is "Phones"
+    const categoryId = 44; // For example, categoryId 1 is "Phones"
 
     const createdProducts = await prisma.product.createMany({
       data: products.map((product: { name: string }) => ({
@@ -568,26 +568,27 @@ export const sendNewsletterEmail = async (req: Request, res: Response) => {
 
 
 export const createWindow = [
-  upload.single('image'), 
+  upload.single('media'), // Change the field name to 'media' to handle both image and video
   async (req: Request, res: Response) => {
     try {
-      const { title, description, url } = req.body;
+      const { title, description, url,content } = req.body;
 
       // Ensure all necessary fields are provided
       if (!title || !description || !url) {
-         res.status(400).json({ message: 'Title, description, and URL are required.' });
-         return
+        res.status(400).json({ message: 'Title, description, and URL are required.' });
+        return;
       }
 
-      let imageUrl = '';
-      if (req.file) {
-        // Upload the image to Cloudinary
-        const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-          folder: 'storeWindows',
-          resource_type: 'auto',
-        });
+      let mediaUrl = ''; // Store the URL of the image/video
 
-        imageUrl = uploadResult.secure_url;
+      if (req.file) {
+          // If it's an image, upload it to Cloudinary
+          const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        resource_type: 'auto', // Specify video resource type
+        folder: 'videos', // Optional folder in Cloudinary
+          });
+
+          mediaUrl = uploadResult.secure_url;
 
         // Clean up the temporary file after uploading
         fs.unlinkSync(req.file.path);
@@ -598,27 +599,29 @@ export const createWindow = [
         data: {
           title,
           description,
+          content,
           url,
-          imageUrl,
+          imageUrl: mediaUrl, // Save the image/video URL here
         },
       });
 
-       res.status(201).json({
+      res.status(201).json({
         success: true,
         message: 'StoreWindow created successfully.',
         data: newWindow,
       });
-      return
+      return;
     } catch (error) {
       console.error('Error creating StoreWindow:', error);
-       res.status(500).json({
+      res.status(500).json({
         success: false,
         message: 'An error occurred while creating the StoreWindow.',
       });
-      return
+      return;
     }
   }
 ];
+
 
 // Get all StoreWindows
 export const getWindows = async (req: Request, res: Response) => {
