@@ -7,7 +7,8 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid'; // Correct import from uuid
 import ffmpegLib from 'fluent-ffmpeg';
 import { fileURLToPath } from "url";
-
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { promisify } from "util";
 // Prisma client
 const prisma = new PrismaClient();
 
@@ -37,47 +38,69 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // const upload = multer({ storage: storage });
+
 const upload = multer({
   dest: 'uploads/', 
-  limits: { fileSize: 300 * 1024 * 1024 } // Set a limit of 300MB
+  limits: { fileSize: 2 * 1024 * 1024 * 1024 } // Set a limit of 2GB
+});
+const s3Client = new S3Client({
+  region: 'us-east-1',
+  credentials: {
+    accessKeyId: 'AKIA47CRVV7TCQ3NNJGM',
+    secretAccessKey: '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'
+  },
 });
 
 /**
  * Controller to handle video creation and upload.
  */
+const unlinkAsync = promisify(fs.unlink);
+
 export const createVideo = [
   upload.single('video'), // Upload a single video file
   async (req: Request, res: Response) => {
     try {
       // Ensure a file was uploaded
       if (!req.file) {
-         res.status(400).json({ message: 'No video file uploaded.' });
-         return
+        res.status(400).json({ message: 'No video file uploaded.' });
+        return;
       }
 
       const { title, duration } = req.body;
       
       // Validate required fields
       if (!title || !duration) {
-         res.status(400).json({ message: 'Title and duration are required.' });
-         return
+        res.status(400).json({ message: 'Title and duration are required.' });
+        return;
       }
 
-      // Upload video to Cloudinary
       const videoFilePath = req.file.path;
-      const result = await cloudinary.uploader.upload(videoFilePath, {
-        resource_type: 'video', // Specify video resource type
-        folder: 'videos', // Optional folder in Cloudinary
-      });
+      const fileContent = fs.readFileSync(videoFilePath);
+      
+      // Generate a unique key for the video
+      const videoKey = `videos/${Date.now()}-${req.file.originalname}`;
+
+      // Upload video to S3
+      const uploadParams = {
+        Bucket: 'instorevideos',
+        Key: videoKey,
+        Body: fileContent,
+        ContentType: req.file.mimetype,
+      };
+
+      await s3Client.send(new PutObjectCommand(uploadParams));
+
+      // Generate the video URL
+      const videoUrl = `https://instorevideos.s3.us-east-1.amazonaws.com/${videoKey}`;
 
       // Clean up the local file after upload
-      fs.unlinkSync(videoFilePath);
+      await unlinkAsync(videoFilePath);
 
       // Save video data in the database
       const newVideo = await prisma.video.create({
         data: {
           title,
-          url: result.secure_url, // URL from Cloudinary
+          url: videoUrl,
           duration: parseInt(duration),
         },
       });
@@ -92,6 +115,7 @@ export const createVideo = [
     }
   },
 ];
+
 
 /**
  * Controller to get all videos.
@@ -242,11 +266,13 @@ export const processVideo = [
       const logoFile = req.file;
 
       if (!videoUrl || !logoFile) {
-         res.status(400).json({ error: 'Video URL and logo are required' });
-         return
+        res.status(400).json({ error: 'Video URL and logo are required' });
+        return;
       }
 
-      const outputFileName = `${uuidv4()}.mp4`;
+      // Determine output format based on input URL extension, default to .mp4
+      const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
+      const outputFileName = `${uuidv4()}${inputExtension}`;
       const outputPath = path.join(__dirname, '../../uploads', outputFileName);
 
       const ffmpegInstance = ffmpegLib(videoUrl);
@@ -258,10 +284,11 @@ export const processVideo = [
             { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
             { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
           ])
-          .outputOptions('-c:v libx264')
+          .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
           .outputOptions('-preset ultrafast') // Faster encoding
           .outputOptions('-threads 0')        // Multi-threading
-          .outputOptions('-c:a copy')
+          .outputOptions('-c:a copy')         // Copy audio codec
+          .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
           .on('end', () => resolve())
           .on('error', (err) => reject(err))
           .save(outputPath);
