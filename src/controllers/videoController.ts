@@ -65,9 +65,9 @@ export const createVideo = [
         return;
       }
 
-      const { title, duration } = req.body;
-      if (!title || !duration) {
-        res.status(400).json({ message: 'Title and duration are required.' });
+      const { title } = req.body;
+      if (!title) {
+        res.status(400).json({ message: 'Title are required.' });
         return;
       }
 
@@ -98,7 +98,6 @@ export const createVideo = [
         data: {
           title,
           url: videoUrl,
-          duration: parseInt(duration),
         },
       });
 
