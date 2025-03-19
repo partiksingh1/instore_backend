@@ -57,34 +57,31 @@ const s3Client = new S3Client({
 const unlinkAsync = promisify(fs.unlink);
 
 export const createVideo = [
-  upload.single('video'), // Upload a single video file
+  upload.single('video'),
   async (req: Request, res: Response) => {
     try {
-      // Ensure a file was uploaded
       if (!req.file) {
         res.status(400).json({ message: 'No video file uploaded.' });
         return;
       }
 
       const { title, duration } = req.body;
-      
-      // Validate required fields
       if (!title || !duration) {
         res.status(400).json({ message: 'Title and duration are required.' });
         return;
       }
 
       const videoFilePath = req.file.path;
-      const fileContent = fs.readFileSync(videoFilePath);
-      
-      // Generate a unique key for the video
       const videoKey = `videos/${Date.now()}-${req.file.originalname}`;
 
-      // Upload video to S3
+      // Create a read stream from the file
+      const fileStream = fs.createReadStream(videoFilePath);
+
+      // Upload to S3 using a stream
       const uploadParams = {
         Bucket: 'instorevideos',
         Key: videoKey,
-        Body: fileContent,
+        Body: fileStream, // Use stream instead of file content
         ContentType: req.file.mimetype,
       };
 
@@ -93,7 +90,7 @@ export const createVideo = [
       // Generate the video URL
       const videoUrl = `https://instorevideos.s3.us-east-1.amazonaws.com/${videoKey}`;
 
-      // Clean up the local file after upload
+      // Clean up the local file
       await unlinkAsync(videoFilePath);
 
       // Save video data in the database
