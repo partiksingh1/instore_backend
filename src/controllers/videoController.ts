@@ -41,7 +41,7 @@ const __dirname = path.dirname(__filename);
 
 const upload = multer({
   dest: 'uploads/', 
-  limits: { fileSize: 2 * 1024 * 1024 * 1024 } // Set a limit of 2GB
+  limits: { fileSize: 10 * 1024 * 1024 * 1024 } // Set a limit of 2GB
 });
 const s3Client = new S3Client({
   region: 'us-east-1',
