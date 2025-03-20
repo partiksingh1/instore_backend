@@ -262,48 +262,52 @@ export const processVideo = [
       const logoFile = req.file;
 
       if (!videoUrl || !logoFile) {
-        res.status(400).json({ error: 'Video URL and logo are required' });
-        return;
+         res.status(400).json({ error: 'Video URL and logo are required' });
+         return
       }
 
-      // Determine output format based on input URL extension, default to .mp4
       const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
       const outputFileName = `${uuidv4()}${inputExtension}`;
-      const outputPath = path.join(__dirname, '../../uploads', outputFileName);
+
+      res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
+      res.setHeader('Content-Type', inputExtension === '.mov' ? 'video/quicktime' : 'video/mp4');
 
       const ffmpegInstance = ffmpegLib(videoUrl);
 
-      await new Promise<void>((resolve, reject) => {
-        ffmpegInstance
-          .input(logoFile.path)
-          .complexFilter([
-            { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
-            { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
-          ])
-          .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
-          .outputOptions('-preset ultrafast') // Faster encoding
-          .outputOptions('-threads 0')        // Multi-threading
-          .outputOptions('-c:a copy')         // Copy audio codec
-          .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
-          .on('end', () => resolve())
-          .on('error', (err) => reject(err))
-          .save(outputPath);
-      });
+      ffmpegInstance
+        .input(logoFile.path)
+        .complexFilter([
+          { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
+          { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
+        ])
+        .outputOptions('-c:v libx264')
+        .outputOptions('-preset ultrafast')
+        .outputOptions('-crf 28')
+        .outputOptions('-threads 2')
+        .outputOptions('-c:a copy')
+        .outputOptions('-f matroska') // Use matroska for streaming compatibility
+        .on('error', (err) => {
+          console.error('FFmpeg error:', err);
+          if (!res.headersSent) {
+            res.status(500).json({ error: 'Video processing failed' });
+          }
+        })
+        .pipe(res, { end: true }); // Stream directly to response
 
-      res.download(outputPath, outputFileName, async (err: any) => {
-        if (err) console.error('Download error:', err);
+      // Cleanup logo file after streaming
+      ffmpegInstance.on('end', async () => {
         try {
-          await Promise.all([
-            fs.promises.unlink(logoFile.path),
-            fs.promises.unlink(outputPath)
-          ]);
+          await fs.promises.unlink(logoFile.path);
         } catch (cleanupErr) {
           console.error('Cleanup error:', cleanupErr);
         }
       });
+
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Video processing failed' });
+      console.error('Unexpected error:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Video processing failed' });
+      }
     }
   }
 ];
