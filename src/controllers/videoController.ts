@@ -282,12 +282,16 @@ export const processVideo = [
           ])
           .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
           .outputOptions('-preset ultrafast') // Faster encoding
-          .outputOptions('-threads 0')        // Multi-threading
+          .outputOptions('-threads 2')
           .outputOptions('-c:a copy')         // Copy audio codec
           .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
           .on('end', () => resolve())
           .on('error', (err) => reject(err))
           .save(outputPath);
+          ffmpegInstance
+  .on('start', (cmd) => console.log('ffmpeg started:', cmd))
+  .on('progress', (progress) => console.log('Processing:', progress))
+  .on('error', (err) => console.error('ffmpeg error:', err.message));
       });
 
       res.download(outputPath, outputFileName, async (err: any) => {
