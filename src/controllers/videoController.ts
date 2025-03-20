@@ -275,26 +275,19 @@ export const processVideo = [
 
       await new Promise<void>((resolve, reject) => {
         ffmpegInstance
-  .input(logoFile.path)
-  .complexFilter([
-    { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
-    { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
-  ])
-  .output(outputPath)
-  .outputOptions('-c:v libx264')
-  .outputOptions('-preset ultrafast')
-  .outputOptions('-threads 0')
-  .outputOptions('-c:a copy')
-  .outputOptions('-f mov')
-  .on('start', commandLine => console.log('FFmpeg command: ', commandLine))
-  .on('stderr', stderrLine => console.error('FFmpeg stderr: ', stderrLine)) // Log any stderr output
-  .on('end', () => resolve())
-  .on('error', (err) => {
-    console.error('Error processing video: ', err);
-    reject(err);
-  })
-  .run();
-
+          .input(logoFile.path)
+          .complexFilter([
+            { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
+            { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
+          ])
+          .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
+          .outputOptions('-preset ultrafast') // Faster encoding
+          .outputOptions('-threads 0')        // Multi-threading
+          .outputOptions('-c:a copy')         // Copy audio codec
+          .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
+          .on('end', () => resolve())
+          .on('error', (err) => reject(err))
+          .save(outputPath);
       });
 
       res.download(outputPath, outputFileName, async (err: any) => {
