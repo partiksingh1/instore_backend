@@ -14,8 +14,8 @@ app.use(cors());
 
 
 // Middleware to parse JSON
-app.use(express.json({ limit: '300mb' }));
-app.use(express.urlencoded({ limit: '300mb', extended: true }));
+app.use(express.json({ limit: '900mb' }));
+app.use(express.urlencoded({ limit: '900mb', extended: true }));
 
 
 // Apply authentication middleware globally to all routes

@@ -10,6 +10,12 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
 });
+// Zod schema for signup validation
+const signupSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
 
 const registerStoreSchema = z.object({
   name: z.string().min(3),
@@ -165,5 +171,52 @@ export const login = async (req: Request, res: Response) => {
     console.error(error);
      res.status(500).json({ message: "Internal server error" });
      return
+  }
+};
+export const signupAdmin = async (req: Request, res: Response) => {
+  try {
+    // Validate the request body using zod schema
+    const parsedData = signupSchema.safeParse(req.body);
+    if (!parsedData.success) {
+      res.status(400).json({ message: 'Invalid input', errors: parsedData.error.errors });
+      return;
+    }
+
+    const { name, email, password } = parsedData.data;
+
+    // Check if the user already exists
+    const existingUser = await prisma.user.findFirst({ where: { email } });
+    if (existingUser) {
+      res.status(400).json({ message: 'User already exists' });
+      return;
+    }
+
+    // Hash the password before saving it
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create a new admin user
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: 'ADMIN',  // Ensure the role is set to 'ADMIN'
+      },
+    });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: newUser.id, name: newUser.name, role: newUser.role },
+      process.env.JWT_SECRET || 'your-jwt-secret',  // Make sure to use a secret key from your environment
+    );
+
+    // Respond with success and the token
+    res.status(201).json({
+      message: 'Admin signup successful',
+      token,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
