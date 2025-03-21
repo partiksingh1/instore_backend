@@ -65,7 +65,7 @@ export const createVideo = [
         return;
       }
 
-      const { title } = req.body;
+      const { title,logoUrl } = req.body;
       if (!title) {
         res.status(400).json({ message: 'Title are required.' });
         return;
@@ -97,6 +97,7 @@ export const createVideo = [
       const newVideo = await prisma.video.create({
         data: {
           title,
+          logoUrl,
           url: videoUrl,
         },
       });
