@@ -26,16 +26,6 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1", storeRouter);
 app.use("/api/v1", adminRouter);
 
-// Basic route
-const keepAlive = () => {
-  https.get('https://instore-backend.onrender.com/api/v1', (res) => {
-      console.log(`Keep-alive pinged: ${res.statusCode}`);
-  }).on('error', (err) => {
-      console.error(`Error pinging: ${err.message}`);
-  });
-};
-setInterval(keepAlive, 10 * 60 * 1000);
-
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
