@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
 import { z } from "zod";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../utils/db.js";
 
 // Define a schema for validating the request parameters
 const fetchStoresSchema = z.object({

@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-const prisma = new PrismaClient();
 import {z} from "zod"
 import multer from 'multer';
 import axios from 'axios';
@@ -8,6 +7,7 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import nodemailer from 'nodemailer';
+import { prisma } from "../utils/db.js";
 
 // Cloudinary Configuration
 cloudinary.config({
@@ -294,7 +294,7 @@ export const batchproducts = async (req: Request, res: Response)=> {
 
   try {
     // Assuming all products should go into the same category
-    const categoryId = 44; // For example, categoryId 1 is "Phones"
+    const categoryId = 43; // For example, categoryId 1 is "Phones"
 
     const createdProducts = await prisma.product.createMany({
       data: products.map((product: { name: string }) => ({

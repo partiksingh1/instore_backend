@@ -1,10 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
-import bcrypt from "bcryptjs";
 import { z } from "zod";
-import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
+import { prisma } from "../utils/db.js";
 
 export const fetchCategories = async (req: Request, res: Response) => {
     try {

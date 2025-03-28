@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { PrismaClient } from '@prisma/client';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
@@ -9,8 +8,7 @@ import ffmpegLib from 'fluent-ffmpeg';
 import { fileURLToPath } from "url";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { promisify } from "util";
-// Prisma client
-const prisma = new PrismaClient();
+import { prisma } from "../utils/db.js";
 
 // Cloudinary configuration
 cloudinary.config({
