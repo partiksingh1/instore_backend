@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { batchproducts, createAd, createLatest, createNewsletter, createWindow, deleteAd, deleteLatest, deleteNewsletter, deleteWindow, fetchAds, fetchAdsByPosition, getAllNewsletters, getLatest, getWindows, sendNewsletterEmail } from '../controllers/adminController.js';
 import { addProduct, deleteProduct, editProduct, getProductsInCategory } from '../controllers/categoryController.js';
-import { createVideo, deleteVideo, getVideos, processVideo } from '../controllers/videoController.js';
-import { getUnverifyStore, verifyStore } from '../controllers/storeController.js';
+import { createVideo, deleteVideo, getVideos, processVideo, } from '../controllers/videoController.js';
+import { getLatestById, getUnverifyStore, verifyStore } from '../controllers/storeController.js';
 
 
 const adminRouter = Router();
@@ -14,6 +14,7 @@ adminRouter.get("/admin/ads", fetchAds); // Route for fetching ads
 adminRouter.get("/admin/ad", fetchAdsByPosition); // Route for fetching ads
 adminRouter.post('/admin/latest', createLatest);
 adminRouter.get('/admin/latest', getLatest);
+adminRouter.get('/admin/latest/:id', getLatestById);
 adminRouter.delete('/admin/latest/:id', deleteLatest);
 adminRouter.post('/admin/products', addProduct);
 adminRouter.put('/admin/products/:id', editProduct);

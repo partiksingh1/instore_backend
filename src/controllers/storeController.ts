@@ -214,3 +214,26 @@ export const getUnverifyStore = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error fetching unverified stores' });
   }
 };
+
+export const getLatestById = async (req: Request, res: Response) => {
+  const { id } = req.params;  // Extract the ID from the request parameters
+
+  try {
+    const latest = await prisma.latest.findUnique({
+      where: {
+        id: Number(id),  // Ensure the ID is a number
+      },
+    });
+
+    if (latest) {
+      res.status(200).json(latest);  // Return the found record
+    } else {
+      res.status(404).json({ message: 'Latest not found' });  // If no record found
+    }
+  } catch (error) {
+    console.error('Error fetching latest by ID:', error);
+    res.status(500).json({
+      message: 'An error occurred while fetching the latest record.',
+    });
+  }
+};
