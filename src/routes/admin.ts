@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { batchproducts, createAd, createLatest, createNewsletter, createWindow, deleteAd, deleteLatest, deleteNewsletter, deleteWindow, fetchAds, fetchAdsByPosition, getAllNewsletters, getLatest, getWindows, sendNewsletterEmail } from '../controllers/adminController.js';
+import { batchproducts, createAd, createLatest, createNewsletter, createScrollBar, createWindow, deleteAd, deleteLatest, deleteNewsletter, deleteWindow, fetchAds, fetchAdsByPosition, getAllNewsletters, getLatest, getLatestScrollBarText, getWindows, sendNewsletterEmail, updateScrollBar } from '../controllers/adminController.js';
 import { addProduct, deleteProduct, editProduct, getProductsInCategory } from '../controllers/categoryController.js';
 import { createVideo, deleteVideo, getVideos, processVideo, } from '../controllers/videoController.js';
 import { getLatestById, getUnverifyStore, verifyStore } from '../controllers/storeController.js';
@@ -34,6 +34,7 @@ adminRouter.get('/windows', getWindows);
 adminRouter.delete('/admin/window/:id', deleteWindow);
 adminRouter.put('/admin/store/:storeId/verify', verifyStore);
 adminRouter.get('/admin/stores/unverified', getUnverifyStore);
-
-
+adminRouter.post('/admin/scrollBar', createScrollBar);
+adminRouter.put('/admin/scrollBar/:id', updateScrollBar);
+adminRouter.get('/admin/scrollBar/latest', getLatestScrollBarText);
 export default adminRouter;
