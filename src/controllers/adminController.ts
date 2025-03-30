@@ -690,3 +690,97 @@ export const deleteWindow = async (req: Request, res: Response) => {
     return
   }
 };
+
+export const createScrollBar = async (req: Request, res: Response) => {
+  const { text } = req.body;
+
+  if (!text) {
+     res.status(400).json({
+      message: 'Text is required to create a ScrollBar.',
+    });
+    return
+  }
+
+  try {
+    const newScrollBar = await prisma.scrollBar.create({
+      data: {
+        text, // Assuming 'text' is the property of ScrollBar to be created
+      },
+    });
+
+    res.status(201).json({
+      message: 'ScrollBar created successfully!',
+      data: newScrollBar,
+    });
+  } catch (error) {
+    console.error('Error creating ScrollBar:', error);
+    res.status(500).json({
+      message: 'An error occurred while creating the ScrollBar.',
+    });
+  }
+};
+
+export const updateScrollBar = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { text } = req.body;
+
+  if (!text) {
+     res.status(400).json({
+      message: 'Text is required to update a ScrollBar.',
+    });
+    return
+  }
+
+  try {
+    const scrollBar = await prisma.scrollBar.update({
+      where: { id: parseInt(id) }, // Ensure the id is an integer
+      data: {
+        text, // Update the 'text' field of the ScrollBar
+      },
+    });
+
+    res.status(200).json({
+      message: 'ScrollBar updated successfully!',
+      data: scrollBar,
+    });
+  } catch (error:any) {
+    console.error('Error updating ScrollBar:', error);
+    if (error.code === 'P2025') {
+      // If no record was found with the given id
+     res.status(404).json({
+        message: 'ScrollBar not found.',
+      });
+      return
+    }
+    res.status(500).json({
+      message: 'An error occurred while updating the ScrollBar.',
+    });
+  }
+};
+// Backend: Assuming you're using Prisma with a ScrollBar model
+export const getLatestScrollBarText = async (req: Request, res: Response) => {
+  try {
+    // Fetch the latest ScrollBar from the database (assuming it's ordered by ID or createdAt)
+    const latestScrollBar = await prisma.scrollBar.findFirst({
+      orderBy: {
+        createdAt: 'desc', // Replace 'createdAt' with your appropriate field
+      },
+    });
+
+    if (!latestScrollBar) {
+       res.status(404).json({
+        message: 'No ScrollBar found.',
+      });
+      return
+    }
+
+    res.status(200).json({
+      text: latestScrollBar.text,
+    });
+  } catch (error) {
+    console.error('Error fetching the latest ScrollBar text:', error);
+    res.status(500).json({
+      message: 'An error occurred while fetching the latest ScrollBar.',
+    });
+  }
+};
