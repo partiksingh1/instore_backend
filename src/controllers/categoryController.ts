@@ -93,11 +93,11 @@ export const deleteCategory = async (req: Request, res: Response) => {
 
 // Add a product to a category
 export const addProduct = async (req: Request, res: Response) => {
-  const { name, categoryId } = req.body;
+  const { name, categoryId , brandUrl } = req.body;
 
   try {
     // Validate input
-    if (!name || !categoryId) {
+    if (!name || !categoryId || !brandUrl) {
        res.status(400).json({ error: "Product name and categoryId are required" });
        return
     }
@@ -106,6 +106,7 @@ export const addProduct = async (req: Request, res: Response) => {
     const product = await prisma.product.create({
       data: {
         name,
+        brandUrl,
         categoryId, // Relating the product to a category
       },
     });

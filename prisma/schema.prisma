@@ -62,6 +62,7 @@ model StoreCategory {
 model Product {
   id                Int      @id @default(autoincrement())
   name              String
+  brandUrl             String?
   categoryId       Int
   category         Category @relation(fields: [categoryId], references: [id])
   createdAt        DateTime @default(now())
