@@ -3,12 +3,11 @@ import {z} from "zod"
 import multer from 'multer';
 import axios from 'axios';
 import { v2 as cloudinary } from 'cloudinary';
-import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
-import path from 'path';
+import path, { dirname, join } from 'path';
 import nodemailer from 'nodemailer';
 import { prisma } from "../utils/db.js";
-
+import { fileURLToPath } from "url";
 // Cloudinary Configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dbcoi7yp8',
@@ -781,6 +780,68 @@ export const getLatestScrollBarText = async (req: Request, res: Response) => {
     console.error('Error fetching the latest ScrollBar text:', error);
     res.status(500).json({
       message: 'An error occurred while fetching the latest ScrollBar.',
+    });
+  }
+};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export const getStoreEmailsByCountryAndCategories = async (req: Request, res: Response) => {
+  const { country, categories } = req.body; // Extract country and categories from the request body
+
+  try {
+    // Fetch stores based on country and categories
+    const stores = await prisma.store.findMany({
+      where: {
+        country: country,
+        storeEmail: {
+          not: null, // Exclude stores with null email
+        },
+        categories: {
+          some: {
+            category: {
+              name: {
+                in: categories, // Filter by categories
+              },
+            },
+          },
+        },
+      },
+      select: {
+        storeEmail: true, // Only select the storeEmail field
+      },
+    });
+
+    // Extract emails from the result
+    const emails = stores.map(store => store.storeEmail).filter(email => email !== null);
+
+    if (emails.length === 0) {
+       res.status(404).json({
+        message: 'No stores found matching the specified country and categories',
+      });
+      return
+    }
+
+    // Generate CSV content (simple list of emails, one per line)
+    const csvContent = emails.join('\n');
+    const filePath = path.join(__dirname, 'stores.csv');
+
+    // Write CSV to file
+    fs.writeFileSync(filePath, csvContent, 'utf8');
+
+    // Send the CSV file as a response
+    res.download(filePath, 'stores.csv', (err) => {
+      if (err) {
+        console.error('Error downloading the file:', err);
+        res.status(500).send('Error downloading the file');
+      }
+      // Delete the file after download
+      fs.unlinkSync(filePath);
+    });
+  } catch (error) {
+    console.error('Error fetching stores:', error);
+    res.status(500).json({
+      message: 'An error occurred while fetching the stores.',
     });
   }
 };
