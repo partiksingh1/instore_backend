@@ -26,6 +26,9 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1", storeRouter);
 app.use("/api/v1", adminRouter);
 
+app.get("/",(req,res)=>{
+  res.send("server is running bro...")
+})
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
