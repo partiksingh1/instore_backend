@@ -3,13 +3,12 @@ import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
+import ffmpegLib from 'fluent-ffmpeg'
 import { v4 as uuidv4 } from 'uuid'; // Correct import from uuid
 import { fileURLToPath } from "url";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { promisify } from "util";
 import { prisma } from "../utils/db.js";
-import ffmpeg from "fluent-ffmpeg";
-import https from 'https';
 // Cloudinary configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dbcoi7yp8',
@@ -256,43 +255,26 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const processVideo = [
   upload.single('logoFile'),
   async (req: Request, res: Response) => {
-    ffmpeg.setFfmpegPath("/usr/local/bin/ffmpeg");
-
     try {
       const { videoUrl } = req.body;
       const logoFile = req.file;
-
+ 
+ 
       if (!videoUrl || !logoFile) {
         res.status(400).json({ error: 'Video URL and logo are required' });
         return;
       }
-
-      // Step 1: Download the video locally
-      const tempVideoPath = path.join(__dirname, '../../uploads', `${uuidv4()}.mp4`);
-      await new Promise<void>((resolve, reject) => {
-        const fileStream = fs.createWriteStream(tempVideoPath);
-        https.get(videoUrl, (response) => {
-          if (response.statusCode !== 200) {
-            reject(new Error(`Failed to download video: Status ${response.statusCode}`));
-            return;
-          }
-          response.pipe(fileStream);
-          fileStream.on('finish', () => {
-            fileStream.close();
-            resolve();
-          });
-        }).on('error', (err) => {
-          fs.unlink(tempVideoPath, () => {}); // Clean up on error
-          reject(err);
-        });
-      });
-
-      // Step 2: Determine output format and process with FFmpeg
+ 
+ 
+      // Determine output format based on input URL extension, default to .mp4
       const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
       const outputFileName = `${uuidv4()}${inputExtension}`;
       const outputPath = path.join(__dirname, '../../uploads', outputFileName);
-      const ffmpegInstance = ffmpeg(tempVideoPath); // Use local file instead of URL
-
+ 
+ 
+      const ffmpegInstance = ffmpegLib(videoUrl);
+ 
+ 
       await new Promise<void>((resolve, reject) => {
         ffmpegInstance
           .input(logoFile.path)
@@ -300,34 +282,36 @@ export const processVideo = [
             { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
             { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
           ])
-          .outputOptions('-c:v libx264')
-          .outputOptions('-preset ultrafast')
+          .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
+          .outputOptions('-preset ultrafast') // Faster encoding
           .outputOptions('-threads 2')
-          .outputOptions('-c:a copy')
-          .outputOptions('-f mov') // Optional, remove if you want to match inputExtension
-          .on('start', (cmd) => console.log('ffmpeg started:', cmd))
-          .on('progress', (progress) => console.log('Processing:', progress))
+          .outputOptions('-c:a copy')         // Copy audio codec
+          .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
           .on('end', () => resolve())
           .on('error', (err) => reject(err))
           .save(outputPath);
+          ffmpegInstance
+  .on('start', (cmd) => console.log('ffmpeg started:', cmd))
+  .on('progress', (progress) => console.log('Processing:', progress))
+  .on('error', (err) => console.error('ffmpeg error:', err.message));
       });
-
-      // Step 3: Send the file to the client and clean up
+ 
+ 
       res.download(outputPath, outputFileName, async (err: any) => {
         if (err) console.error('Download error:', err);
         try {
           await Promise.all([
             fs.promises.unlink(logoFile.path),
-            fs.promises.unlink(outputPath),
-            fs.promises.unlink(tempVideoPath) // Clean up the downloaded video
+            fs.promises.unlink(outputPath)
           ]);
         } catch (cleanupErr) {
           console.error('Cleanup error:', cleanupErr);
         }
       });
     } catch (error) {
-      console.error('Processing error:', error);
+      console.error(error);
       res.status(500).json({ error: 'Video processing failed' });
     }
   }
-];
+ ];
+ 
