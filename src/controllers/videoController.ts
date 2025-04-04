@@ -4,12 +4,11 @@ import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid'; // Correct import from uuid
-import ffmpegLib from 'fluent-ffmpeg';
 import { fileURLToPath } from "url";
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { promisify } from "util";
 import { prisma } from "../utils/db.js";
-
+import ffmpeg from "fluent-ffmpeg";
 // Cloudinary configuration
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dbcoi7yp8',
@@ -256,6 +255,7 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const processVideo = [
   upload.single('logoFile'),
   async (req: Request, res: Response) => {
+    ffmpeg.setFfmpegPath("/home/ec2-user/ffmpeg");
     try {
       const { videoUrl } = req.body;
       const logoFile = req.file;
@@ -269,8 +269,7 @@ export const processVideo = [
       const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
       const outputFileName = `${uuidv4()}${inputExtension}`;
       const outputPath = path.join(__dirname, '../../uploads', outputFileName);
-
-      const ffmpegInstance = ffmpegLib(videoUrl);
+      const ffmpegInstance = ffmpeg(videoUrl);
 
       await new Promise<void>((resolve, reject) => {
         ffmpegInstance
