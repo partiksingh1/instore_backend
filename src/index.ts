@@ -25,6 +25,14 @@ app.use(express.urlencoded({ limit: '900mb', extended: true }));
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1", storeRouter);
 app.use("/api/v1", adminRouter);
+//testing
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] !== 'https') {
+    return res.redirect('https://' + req.headers.host + req.url);
+  }
+  next();
+});
+//testing
 
 app.get("/",(req,res)=>{
   res.send("server is running bro...")
