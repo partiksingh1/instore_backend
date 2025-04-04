@@ -44,8 +44,8 @@ const upload = multer({
 const s3Client = new S3Client({
   region: 'us-east-1',
   credentials: {
-    accessKeyId: 'AKIA47CRVV7TCQ3NNJGM',
-    secretAccessKey: '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'
+    accessKeyId: 'AKIATX3PH56IREFCEPBG',
+    secretAccessKey: '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'
   },
 });
 
