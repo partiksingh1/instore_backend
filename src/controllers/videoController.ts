@@ -256,7 +256,7 @@ export const deleteVideo = async (req: Request, res: Response) => {
 export const processVideo = [
   upload.single('logoFile'),
   async (req: Request, res: Response) => {
-    ffmpeg.setFfmpegPath("/home/ec2-user/ffmpeg");
+    ffmpeg.setFfmpegPath("/usr/local/bin/ffmpeg");
 
     try {
       const { videoUrl } = req.body;
