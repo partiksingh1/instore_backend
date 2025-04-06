@@ -258,47 +258,67 @@ export const processVideo = [
     try {
       const { videoUrl } = req.body;
       const logoFile = req.file;
- 
- 
+
       if (!videoUrl || !logoFile) {
         res.status(400).json({ error: 'Video URL and logo are required' });
         return;
       }
- 
- 
+
       // Determine output format based on input URL extension, default to .mp4
       const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
       const outputFileName = `${uuidv4()}${inputExtension}`;
       const outputPath = path.join(__dirname, '../../uploads', outputFileName);
- 
- 
+
       const ffmpegInstance = ffmpegLib(videoUrl);
- 
- 
+
+      // Optimization settings
       await new Promise<void>((resolve, reject) => {
         ffmpegInstance
           .input(logoFile.path)
           .complexFilter([
-            { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
-            { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
+            { 
+              filter: 'scale', 
+              inputs: ['1:v'], 
+              options: { w: 'iw/7', h: 'ih/7' }, 
+              outputs: ['scaled'] 
+            },
+            { 
+              filter: 'overlay', 
+              inputs: ['0:v', 'scaled'], 
+              options: { x: 'main_w-overlay_w-10', y: '10' } 
+            }
           ])
-          .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
-          .outputOptions('-preset ultrafast') // Faster encoding
-          .outputOptions('-threads 2')
-          .outputOptions('-c:a copy')         // Copy audio codec
-          .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
+          // Video codec options for speed
+          .videoCodec('libx264')          // H.264 codec
+          .outputOptions([
+            '-preset ultrafast',          // Fastest encoding preset
+            '-tune fastdecode',           // Optimize for decoding speed
+            '-crf 28',                   // Higher CRF = lower quality but faster (range 0-51)
+            '-movflags +faststart',       // Enable streaming
+            '-threads 0',                 // Use more threads if available
+            '-g 52',                     // Keyframe interval
+            '-x264-params ref=1:scenecut=0' // Fewer reference frames
+          ])
+          // Audio options
+          .audioCodec('aac')              // Use AAC instead of copy for compatibility
+          .audioQuality(5)                // Lower audio quality for speed
+          .outputOptions('-shortest')     // Match shortest stream length
+          .format(inputExtension.substring(1)) // Use input extension as format
+          .on('start', (cmd) => console.log('ffmpeg started:', cmd))
+          .on('progress', (progress) => console.log('Processing:', progress))
           .on('end', () => resolve())
-          .on('error', (err) => reject(err))
+          .on('error', (err) => {
+            console.error('ffmpeg error:', err.message);
+            reject(err);
+          })
           .save(outputPath);
-          ffmpegInstance
-  .on('start', (cmd) => console.log('ffmpeg started:', cmd))
-  .on('progress', (progress) => console.log('Processing:', progress))
-  .on('error', (err) => console.error('ffmpeg error:', err.message));
       });
- 
- 
-      res.download(outputPath, outputFileName, async (err: any) => {
-        if (err) console.error('Download error:', err);
+
+      // Stream the file while cleaning up
+      const fileStream = fs.createReadStream(outputPath);
+      fileStream.pipe(res);
+      
+      fileStream.on('close', async () => {
         try {
           await Promise.all([
             fs.promises.unlink(logoFile.path),
@@ -308,10 +328,16 @@ export const processVideo = [
           console.error('Cleanup error:', cleanupErr);
         }
       });
+
+      fileStream.on('error', (err) => {
+        console.error('Stream error:', err);
+        res.status(500).end();
+      });
+
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'Video processing failed' });
     }
   }
- ];
+];
  
