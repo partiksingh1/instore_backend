@@ -251,7 +251,6 @@ export const deleteVideo = async (req: Request, res: Response) => {
 //     }
 //   }
 // ];
-
 export const processVideo = [
   upload.single('logoFile'),
   async (req: Request, res: Response) => {
@@ -264,14 +263,12 @@ export const processVideo = [
         return;
       }
 
-      // Determine output format based on input URL extension, default to .mp4
       const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
       const outputFileName = `${uuidv4()}${inputExtension}`;
       const outputPath = path.join(__dirname, '../../uploads', outputFileName);
 
       const ffmpegInstance = ffmpegLib(videoUrl);
 
-      // Optimization settings
       await new Promise<void>((resolve, reject) => {
         ffmpegInstance
           .input(logoFile.path)
@@ -288,22 +285,21 @@ export const processVideo = [
               options: { x: 'main_w-overlay_w-10', y: '10' } 
             }
           ])
-          // Video codec options for speed
-          .videoCodec('libx264')          // H.264 codec
+          .videoCodec('libx264')
           .outputOptions([
-            '-preset ultrafast',          // Fastest encoding preset
-            '-tune fastdecode',           // Optimize for decoding speed
-            '-crf 28',                   // Higher CRF = lower quality but faster (range 0-51)
-            '-movflags +faststart',       // Enable streaming
-            '-threads 2',                 // Use more threads if available
-            '-g 52',                     // Keyframe interval
-            '-x264-params ref=1:scenecut=0' // Fewer reference frames
+            '-preset ultrafast',
+            '-tune fastdecode',
+            '-crf 35',
+            '-movflags +faststart',
+            '-threads 2',
+            '-g 52',
+            '-x264-params ref=1:scenecut=0',
+            '-b:v', '2000k',
           ])
-          // Audio options
-          .audioCodec('aac')              // Use AAC instead of copy for compatibility
-          .audioQuality(5)                // Lower audio quality for speed
-          .outputOptions('-shortest')     // Match shortest stream length
-          .format(inputExtension.substring(1)) // Use input extension as format
+          .audioCodec('aac')
+          .audioQuality(5)
+          .outputOptions('-shortest')
+          .format(inputExtension.substring(1))
           .on('start', (cmd) => console.log('ffmpeg started:', cmd))
           .on('progress', (progress) => console.log('Processing:', progress))
           .on('end', () => resolve())
@@ -314,7 +310,6 @@ export const processVideo = [
           .save(outputPath);
       });
 
-      // Stream the file while cleaning up
       const fileStream = fs.createReadStream(outputPath);
       fileStream.pipe(res);
       
@@ -340,4 +335,5 @@ export const processVideo = [
     }
   }
 ];
+
  
