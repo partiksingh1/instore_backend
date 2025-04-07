@@ -295,7 +295,7 @@ export const processVideo = [
             '-tune fastdecode',           // Optimize for decoding speed
             '-crf 28',                   // Higher CRF = lower quality but faster (range 0-51)
             '-movflags +faststart',       // Enable streaming
-            '-threads 0',                 // Use more threads if available
+            '-threads 2',                 // Use more threads if available
             '-g 52',                     // Keyframe interval
             '-x264-params ref=1:scenecut=0' // Fewer reference frames
           ])
