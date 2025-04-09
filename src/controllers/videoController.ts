@@ -273,41 +273,21 @@ export const processVideo = [
         ffmpegInstance
           .input(logoFile.path)
           .complexFilter([
-            { 
-              filter: 'scale', 
-              inputs: ['1:v'], 
-              options: { w: 'iw/7', h: 'ih/7' }, 
-              outputs: ['scaled'] 
-            },
-            { 
-              filter: 'overlay', 
-              inputs: ['0:v', 'scaled'], 
-              options: { x: 'main_w-overlay_w-10', y: '10' } 
-            }
+            { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
+            { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
           ])
-          .videoCodec('libx264')
-          .outputOptions([
-            '-preset ultrafast',
-            '-tune fastdecode',
-            '-crf 35',
-            '-movflags +faststart',
-            '-threads 2',
-            '-g 52',
-            '-x264-params ref=1:scenecut=0',
-            '-b:v', '2000k',
-          ])
-          .audioCodec('aac')
-          .audioQuality(5)
-          .outputOptions('-shortest')
-          .format(inputExtension.substring(1))
-          .on('start', (cmd) => console.log('ffmpeg started:', cmd))
-          .on('progress', (progress) => console.log('Processing:', progress))
+          .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
+          .outputOptions('-preset ultrafast') // Faster encoding
+          .outputOptions('-threads 2')
+          .outputOptions('-c:a copy')         // Copy audio codec
+          .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
           .on('end', () => resolve())
-          .on('error', (err) => {
-            console.error('ffmpeg error:', err.message);
-            reject(err);
-          })
+          .on('error', (err) => reject(err))
           .save(outputPath);
+          ffmpegInstance
+  .on('start', (cmd) => console.log('ffmpeg started:', cmd))
+  .on('progress', (progress) => console.log('Processing:', progress))
+  .on('error', (err) => console.error('ffmpeg error:', err.message));
       });
 
       const fileStream = fs.createReadStream(outputPath);
