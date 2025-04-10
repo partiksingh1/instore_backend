@@ -6,8 +6,10 @@ import path from 'path';
 import ffmpegLib from 'fluent-ffmpeg'
 import { v4 as uuidv4 } from 'uuid'; // Correct import from uuid
 import { fileURLToPath } from "url";
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { promisify } from "util";
+import nodemailer from 'nodemailer';
 import { prisma } from "../utils/db.js";
 // Cloudinary configuration
 cloudinary.config({
@@ -52,6 +54,13 @@ const s3Client = new S3Client({
  * Controller to handle video creation and upload.
  */
 const unlinkAsync = promisify(fs.unlink);
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: "partiktanwar30402@gmail.com", // Use environment variables
+    pass: "pmdb kabv zyrz lbpn", // Use environment variables
+  },
+});
 
 export const createVideo = [
   upload.single('video'),
@@ -166,57 +175,58 @@ export const deleteVideo = async (req: Request, res: Response) => {
 
 export const processVideo = [
   upload.single('logoFile'),
-  async (req:Request, res:Response) => {
+  async (req: Request, res: Response) => {
     try {
       const { videoUrl } = req.body;
       const logoFile = req.file;
 
       if (!videoUrl || !logoFile) {
-         res.status(400).json({ error: 'Video URL and logo are required' });
-         return
+        res.status(400).json({ error: 'Video URL and logo are required' });
+        return;
       }
 
-      const outputFileName = `${uuidv4()}.mp4`;
-      res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
-      res.setHeader('Content-Type', 'video/mp4');
+      // Determine output format based on input URL extension, default to .mp4
+      const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
+      const outputFileName = `${uuidv4()}${inputExtension}`;
+      const outputPath = path.join(__dirname, '../../uploads', outputFileName);
 
       const ffmpegInstance = ffmpegLib(videoUrl);
-      ffmpegInstance
-        .input(logoFile.path)
-        .complexFilter([
-          { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
-          { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
-        ])
-        .outputOptions('-c:v libx264')
-        .outputOptions('-preset veryfast')
-        .outputOptions('-c:a copy')
-        .outputFormat('mp4')
-        .on('start', (cmd) => console.log('FFmpeg started:', cmd))
-        .on('progress', (progress) => console.log('Processing:', progress))
-        .on('error', (err) => {
-          console.error('FFmpeg error:', err.message);
-          if (!res.headersSent) {
-            res.status(500).json({ error: 'Video processing failed' });
-          }
-        })
-        .pipe(res, { end: true });
 
-      // Cleanup logo file after streaming starts
-      ffmpegInstance.on('end', async () => {
+      await new Promise<void>((resolve, reject) => {
+        ffmpegInstance
+          .input(logoFile.path)
+          .complexFilter([
+            { filter: 'scale', inputs: ['1:v'], options: { w: 'iw/7', h: 'ih/7' }, outputs: ['scaled'] },
+            { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
+          ])
+          .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
+          .outputOptions('-preset ultrafast') // Faster encoding
+          .outputOptions('-threads 2')
+          .outputOptions('-c:a copy')         // Copy audio codec
+          .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
+          .on('end', () => resolve())
+          .on('error', (err) => reject(err))
+          .save(outputPath);
+          ffmpegInstance
+  .on('start', (cmd) => console.log('ffmpeg started:', cmd))
+  .on('progress', (progress) => console.log('Processing:', progress))
+  .on('error', (err) => console.error('ffmpeg error:', err.message));
+      });
+
+      res.download(outputPath, outputFileName, async (err: any) => {
+        if (err) console.error('Download error:', err);
         try {
-          await fs.promises.unlink(logoFile.path);
-          console.log('Cleanup completed');
+          await Promise.all([
+            fs.promises.unlink(logoFile.path),
+            fs.promises.unlink(outputPath)
+          ]);
         } catch (cleanupErr) {
           console.error('Cleanup error:', cleanupErr);
         }
       });
     } catch (error) {
-      console.error('Unexpected error:', error);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Video processing failed' });
-      }
+      console.error(error);
+      res.status(500).json({ error: 'Video processing failed' });
     }
   }
 ];
-
- 
