@@ -172,7 +172,8 @@ export const processVideo = [
       const logoFile = req.file;
 
       if (!videoUrl || !logoFile) {
-        return res.status(400).json({ error: 'Video URL and logo are required' });
+         res.status(400).json({ error: 'Video URL and logo are required' });
+         return
       }
 
       const outputFileName = `${uuidv4()}.mp4`;
