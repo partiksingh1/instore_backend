@@ -6,8 +6,7 @@ import path from 'path';
 import ffmpegLib from 'fluent-ffmpeg'
 import { v4 as uuidv4 } from 'uuid'; // Correct import from uuid
 import { fileURLToPath } from "url";
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { promisify } from "util";
 import nodemailer from 'nodemailer';
 import { prisma } from "../utils/db.js";
@@ -54,13 +53,6 @@ const s3Client = new S3Client({
  * Controller to handle video creation and upload.
  */
 const unlinkAsync = promisify(fs.unlink);
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: "partiktanwar30402@gmail.com", // Use environment variables
-    pass: "pmdb kabv zyrz lbpn", // Use environment variables
-  },
-});
 
 export const createVideo = [
   upload.single('video'),
@@ -200,7 +192,7 @@ export const processVideo = [
             { filter: 'overlay', inputs: ['0:v', 'scaled'], options: { x: 'main_w-overlay_w-10', y: '10' } }
           ])
           .outputOptions('-c:v libx264')      // H.264 video codec (works for both .mp4 and .mov)
-          .outputOptions('-preset ultrafast') // Faster encoding
+          .outputOptions('-preset veryfast') // Faster encoding
           .outputOptions('-threads 2')
           .outputOptions('-c:a copy')         // Copy audio codec
           .outputOptions('-f mov')            // Explicitly set format to mov if needed (optional)
