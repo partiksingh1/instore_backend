@@ -29,6 +29,15 @@ app.use("/api/v1", adminRouter);
 app.get("/",(req,res)=>{
   res.send("server is running bro...")
 })
+const keepAliveUrl = "https://instore-backend-oqxb.onrender.com";
+
+setInterval(() => {
+  https.get(keepAliveUrl, (res) => {
+    console.log(`Pinged ${keepAliveUrl} - Status: ${res.statusCode}`);
+  }).on("error", (err) => {
+    console.error(`Error pinging ${keepAliveUrl}:`, err.message);
+  });
+}, 60 * 1000); // 1 minute interval
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
