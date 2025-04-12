@@ -83,6 +83,17 @@ export const processVideo = [
         res.status(400).json({ error: 'Invalid email address' });
         return;
       }
+            // Send an email right after validation (acknowledgement email)
+            await transporter.sendMail({
+              from: '"In-Store Video" <your-email@gmail.com>',
+              to: email,
+              subject: 'Your Video is Being Processed!',
+              html: `
+                <h3>Thank you for your request!</h3>
+                <p>Your video is now being processed. You will receive a notification once it's ready for download.</p>
+                <p>If you have any questions, feel free to reach out to us at POSVideo@instorenetwork.com.</p>
+              `,
+            });
 
       // Determine output format based on input URL extension, default to .mp4
       const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
