@@ -26,18 +26,29 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// Multer storage configuration for video uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = 'uploads/videos/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
 // Get __dirname equivalent in ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  }
+
+// const upload = multer({ storage: storage });
+
+const upload = multer({
+  dest: 'uploads/', 
+  limits: { fileSize: 10 * 1024 * 1024 * 1024 } // Set a limit of 2GB
 });
-const upload = multer({ storage });
 const s3Client = new S3Client({
   region: 'us-east-1',
   credentials: {
@@ -76,7 +87,7 @@ export const processVideo = [
       // Determine output format based on input URL extension, default to .mp4
       const inputExtension = videoUrl.toLowerCase().endsWith('.mov') ? '.mov' : '.mp4';
       const outputFileName = `${uuidv4()}${inputExtension}`;
-      const outputPath = path.join(__dirname, '../../Uploads', outputFileName);
+      const outputPath = path.join(__dirname, '../../uploads', outputFileName);
 
       // Process video with FFmpeg
       const ffmpegInstance = ffmpegLib(videoUrl);
