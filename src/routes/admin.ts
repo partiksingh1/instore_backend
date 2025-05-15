@@ -3,6 +3,7 @@ import { batchproducts, createAd, createLatest, createNewsletter, createScrollBa
 import { addProduct, deleteProduct, editProduct, getProductsInCategory } from '../controllers/categoryController.js';
 import { createVideo, deleteVideo, getVideos, processVideo, } from '../controllers/videoController.js';
 import { getLatestById, getUnverifyStore, verifyStore } from '../controllers/storeController.js';
+import { createPremiere, getPremiere, getPremiereById } from '../controllers/premiereController.js';
 
 
 const adminRouter = Router();
@@ -15,6 +16,9 @@ adminRouter.get("/admin/ad", fetchAdsByPosition); // Route for fetching ads
 adminRouter.post('/admin/latest', createLatest);
 adminRouter.get('/admin/latest', getLatest);
 adminRouter.get('/admin/latest/:id', getLatestById);
+adminRouter.post('/admin/premiere', createPremiere);
+adminRouter.get('/admin/premiere', getPremiere);
+adminRouter.get('/admin/premiere/:id', getPremiereById);
 adminRouter.delete('/admin/latest/:id', deleteLatest);
 adminRouter.post('/admin/products', addProduct);
 adminRouter.put('/admin/products/:id', editProduct);
